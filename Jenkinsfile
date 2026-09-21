@@ -8,11 +8,17 @@ pipeline {
               archive 'target/*.jar' // archive file is archive23
             }
         }  
-      stage('UNIT tests') {
+      stage('UNIT tests - JUnit and Jacoco') {
             steps {
               sh "mvn test"
             }
+            post {
+                always {
+                    junit 'target/surefire-reports/*.xml'
+                    jacoco execPattern: 'target/jacoco.exec'
+            }
         }  
+      } 
 
     }
 }
