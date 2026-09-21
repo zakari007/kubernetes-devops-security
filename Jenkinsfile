@@ -20,13 +20,27 @@ pipeline {
         }  
       }     
       stage('Docker Build and Push') {
-            steps {
+          steps {
               withDockerRegistry([credentialsId: 'Docker-hub', url: '']) {
-                sh 'printenv'
-                sh 'docker build -t sitotest/numeric-app:""$GIT_COMMIT"" .'
-                sh 'docker push sitotest/numeric-app:""$GIT_COMMIT""' 
+
+                  sh '''
+                      set -e
+
+                      IMAGE=sitotest/numeric-app
+                      TAG=${GIT_COMMIT}
+
+                      echo "Building ${IMAGE}:${TAG}"
+
+                      docker build -t ${IMAGE}:${TAG} .
+
+                      docker push ${IMAGE}:${TAG}
+
+                      docker tag ${IMAGE}:${TAG} ${IMAGE}:latest
+                      docker push ${IMAGE}:latest
+                  '''
+                  } 
               }
-            }
+          
         }  
 
     }
