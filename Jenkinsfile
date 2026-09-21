@@ -21,9 +21,11 @@ pipeline {
       }     
       stage('Docker Build and Push') {
             steps {
-              sh 'printenv'
-              sh 'docker build -t sitotest/numeric-app:""$GIT_COMMIT"" .'
-              sh 'docker push sitotest/numeric-app:""$GIT_COMMIT""' 
+              withDockerRegistry([credentialsId: 'Docker-hub', url: '']) {
+                sh 'printenv'
+                sh 'docker build -t sitotest/numeric-app:""$GIT_COMMIT"" .'
+                sh 'docker push sitotest/numeric-app:""$GIT_COMMIT""' 
+              }
             }
         }  
 
