@@ -53,6 +53,7 @@ pipeline {
           }
       }
        **/
+       /**
       stage('Kubernetes Test') {
           steps {
               sh '''
@@ -95,6 +96,31 @@ pipeline {
               }
           }
       }
+      **/
+
+      stage('Kubernetes Deployment') {
+          steps {
+              sh '''
+                  set -e
+
+                  echo "Kubernetes cluster:"
+                  kubectl cluster-info
+
+                  echo "Updating image:"
+                  sed -i "s#replace#sitotest/numeric-app:${GIT_COMMIT}#g" \
+                      k8s_deployment_service.yaml
+
+                  echo "Applying deployment:"
+                  kubectl apply -f k8s_deployment_service.yaml
+
+                  echo "Deployment status:"
+                  kubectl get deployments
+
+                  echo "Pods:"
+                  kubectl get pods
+              '''
+          }
+}
 
     }
 }
