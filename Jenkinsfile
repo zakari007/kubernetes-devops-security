@@ -42,12 +42,56 @@ pipeline {
               } 
         }  
       
+      /**
       stage('Kubrnetes Deployment') {
           steps {
               withKubeConfig([credentialsId: 'kubeconfig']) {
                   sh "sed -i 's#replace#sitotest/numeric-app:${GIT_COMMIT}#g' k8s_deployment_service.yaml"
                   sh "kubectl apply -f k8s_deployment_service.yaml"
                 
+              }
+          }
+      }
+       **/
+      stage('Kubernetes Test') {
+          steps {
+              sh '''
+                  echo "===== HOST ====="
+                  hostname
+                  whoami
+                  pwd
+
+                  echo "===== KUBECTL ====="
+                  which kubectl
+                  kubectl version --client
+
+                  echo "===== KUBECONFIG BEFORE ====="
+                  echo "KUBECONFIG=$KUBECONFIG"
+
+                  echo "===== NETWORK TEST ====="
+                  curl -k https://192.168.10.51:6443/version
+
+                  echo "===== KUBECTL WITHOUT CREDENTIAL ====="
+                  kubectl cluster-info
+              '''
+
+              withKubeConfig([credentialsId: 'kubeconfig']) {
+                  sh '''
+                      echo "===== KUBECONFIG FROM JENKINS ====="
+                      echo "KUBECONFIG=$KUBECONFIG"
+
+                      echo "===== CONFIG ====="
+                      kubectl config view --minify
+
+                      echo "===== CONTEXT ====="
+                      kubectl config current-context
+
+                      echo "===== CLUSTER ====="
+                      kubectl cluster-info
+
+                      echo "===== NODES ====="
+                      kubectl get nodes
+                  '''
               }
           }
       }
