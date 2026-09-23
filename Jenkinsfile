@@ -1,122 +1,193 @@
 pipeline {
-  agent any
+    agent any
 
-  stages {
-      stage('Build Artifact') {
+    stages {
+
+        stage('Build Artifact') {
             steps {
-              sh "mvn clean package -DskipTests=true"
-              archive 'target/*.jar' // archive file is archive23
+                sh '''
+                    set -e
+                    echo "===== BUILD ARTIFACT ====="
+
+                    mvn clean package -DskipTests=true
+                '''
+
+                archiveArtifacts artifacts: 'target/*.jar',
+                                 fingerprint: true
             }
-        }  
-      stage('UNIT tests - JUnit and Jacoco') {
+        }
+
+        stage('UNIT Tests - JUnit and Jacoco') {
             steps {
-              sh "mvn test"
+                sh '''
+                    set -e
+                    echo "===== UNIT TESTS ====="
+
+                    mvn test
+                '''
             }
+
             post {
-              always {
-                    junit 'target/surefire-reports/*.xml'
-                    jacoco execPattern: 'target/jacoco.exec'
+                always {
+                    echo "===== JUNIT RESULTS ====="
+
+                    junit(
+                        testResults: 'target/surefire-reports/*.xml',
+                        allowEmptyResults: false
+                    )
+
+                    echo "===== JACOCO RESULTS ====="
+
+                    jacoco(
+                        execPattern: 'target/jacoco.exec'
+                    )
+                }
             }
-        }  
-      }     
-      stage('Docker Build and Push') {
-          steps {
-              withDockerRegistry([credentialsId: 'Docker-hub', url: '']) {
+        }
 
-                  sh '''
-                      set -e
+        stage('Docker Build and Push') {
+            steps {
+                withDockerRegistry([
+                    credentialsId: 'Docker-hub',
+                    url: ''
+                ]) {
 
-                      IMAGE=sitotest/numeric-app
-                      TAG=${GIT_COMMIT}
+                    sh '''
+                        set -e
 
-                      echo "Building ${IMAGE}:${TAG}"
+                        IMAGE=sitotest/numeric-app
+                        TAG=${GIT_COMMIT}
 
-                      docker build -t ${IMAGE}:${TAG} .
+                        echo "===== DOCKER BUILD ====="
+                        echo "Image: ${IMAGE}:${TAG}"
 
-                      docker push ${IMAGE}:${TAG}
+                        docker build \
+                            -t ${IMAGE}:${TAG} \
+                            .
 
-                      docker tag ${IMAGE}:${TAG} ${IMAGE}:latest
-                      docker push ${IMAGE}:latest
-                  '''
-                  } 
-              } 
-        }  
-      
-      /**
-      stage('Kubrnetes Deployment') {
-          steps {
-                  sh "sed -i 's#replace#sitotest/numeric-app:${GIT_COMMIT}#g' k8s_deployment_service.yaml"
-                  sh "kubectl apply -f k8s_deployment_service.yaml"    
-          }
-      }
-       **/
-       /**
-      stage('Kubernetes Test') {
-          steps {
-              sh '''
-                  echo "===== HOST ====="
-                  hostname
-                  whoami
-                  pwd
+                        echo "===== DOCKER PUSH ====="
 
-                  echo "===== KUBECTL ====="
-                  which kubectl
-                  kubectl version --client
+                        docker push ${IMAGE}:${TAG}
 
-                  echo "===== KUBECONFIG BEFORE ====="
-                  echo "KUBECONFIG=$KUBECONFIG"
+                        echo "===== DOCKER LATEST TAG ====="
 
-                  echo "===== NETWORK TEST ====="
-                  curl -k https://192.168.10.51:6443/version
+                        docker tag \
+                            ${IMAGE}:${TAG} \
+                            ${IMAGE}:latest
 
-                  echo "===== KUBECTL WITHOUT CREDENTIAL ====="
-                  kubectl cluster-info
-              '''
+                        docker push ${IMAGE}:latest
 
-              withKubeConfig([credentialsId: 'kubeconfig']) {
-                  sh '''
-                      echo "===== KUBECONFIG FROM JENKINS ====="
-                      echo "KUBECONFIG=$KUBECONFIG"
+                        echo "Docker image successfully pushed:"
+                        echo "${IMAGE}:${TAG}"
+                        echo "${IMAGE}:latest"
+                    '''
+                }
+            }
+        }
 
-                      echo "===== CONFIG ====="
-                      kubectl config view --minify
+        stage('Kubernetes Deployment') {
+            steps {
+                sh '''
+                    set -e
 
-                      echo "===== CONTEXT ====="
-                      kubectl config current-context
+                    echo "======================================"
+                    echo " KUBERNETES DEPLOYMENT"
+                    echo "======================================"
 
-                      echo "===== CLUSTER ====="
-                      kubectl cluster-info
+                    echo "===== Kubernetes Cluster ====="
+                    kubectl cluster-info
 
-                      echo "===== NODES ====="
-                      kubectl get nodes
-                  '''
-              }
-          }
-      }
-      **/
-      
-      stage('Kubernetes Deployment') {
-          steps {
-              sh '''
-                  set -e
+                    echo "===== Current Context ====="
+                    kubectl config current-context
 
-                  echo "Kubernetes cluster:"
-                  kubectl cluster-info
+                    echo "===== Kubernetes Nodes ====="
+                    kubectl get nodes
 
-                  echo "Updating image:"
-                  sed -i "s#replace#sitotest/numeric-app:${GIT_COMMIT}#g" \
-                      k8s_deployment_service.yaml
+                    echo "===== Updating Image ====="
 
-                  echo "Applying deployment:"
-                  kubectl apply -f k8s_deployment_service.yaml
+                    sed -i "s#replace#sitotest/numeric-app:${GIT_COMMIT}#g" \
+                        k8s_deployment_service.yaml
 
-                  echo "Deployment status:"
-                  kubectl get deployments
+                    echo "===== Kubernetes Manifest ====="
+                    grep -n "image:" k8s_deployment_service.yaml
 
-                  echo "Pods:"
-                  kubectl get pods
-              '''
-          }
+                    echo "===== Applying Deployment ====="
+
+                    kubectl apply \
+                        -f k8s_deployment_service.yaml
+
+                    echo "===== Deployments ====="
+
+                    kubectl get deployments
+
+                    echo "===== Pods ====="
+
+                    kubectl get pods -o wide
+
+                    echo "===== Services ====="
+
+                    kubectl get services
+
+                    echo "===== Kubernetes Deployment Complete ====="
+                '''
+            }
+        }
+    }
+
+    post {
+
+        success {
+            echo """
+            ======================================
+            JENKINS BUILD SUCCESS
+            ======================================
+
+            Job:       ${JOB_NAME}
+            Build:     #${BUILD_NUMBER}
+            Commit:    ${GIT_COMMIT}
+
+            Jenkins:
+            ${BUILD_URL}
+
+            ======================================
+            """
+        }
+
+        failure {
+            echo """
+            ======================================
+            JENKINS BUILD FAILED
+            ======================================
+
+            Job:       ${JOB_NAME}
+            Build:     #${BUILD_NUMBER}
+            Commit:    ${GIT_COMMIT}
+
+            Jenkins Console:
+            ${BUILD_URL}console
+
+            ======================================
+            """
+        }
+
+        unstable {
+            echo """
+            ======================================
+            JENKINS BUILD UNSTABLE
+            ======================================
+
+            Job:       ${JOB_NAME}
+            Build:     #${BUILD_NUMBER}
+
+            Jenkins:
+            ${BUILD_URL}
+
+            ======================================
+            """
+        }
+
+        always {
+            echo "Jenkins Build URL: ${BUILD_URL}"
         }
     }
 }
