@@ -146,13 +146,13 @@ pipeline {
 
                     echo "===== UPDATE IMAGE ====="
 
-                    sed -i "s#replace#sito/numeric-app:${GIT_COMMIT}#g" \
+                    sed -i "s#replace#sitotest/numeric-app:${GIT_COMMIT}#g" \
                         k8s_deployment_service.yaml
 
                     echo "===== APPLY DEPLOYMENT ====="
 
                     kubectl apply \
-                        -f k8s_deployment_service.yaml
+                        -f k8s_deploymentService.yaml
 
                     echo "===== DEPLOYMENTS ====="
 
