@@ -152,7 +152,7 @@ pipeline {
                     echo "===== APPLY DEPLOYMENT ====="
 
                     kubectl apply \
-                        -f k8s_deploymentService.yaml
+                        -f k8s_deployment_service.yaml
 
                     echo "===== DEPLOYMENTS ====="
 
