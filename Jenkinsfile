@@ -1,19 +1,38 @@
 def setGitHubStatus(String message, String state) {
+
+    def repoUrl = sh(
+        script: 'git config --get remote.origin.url',
+        returnStdout: true
+    ).trim()
+
+    def commitSha = sh(
+        script: 'git rev-parse HEAD',
+        returnStdout: true
+    ).trim()
+
+    echo "GitHub repository: ${repoUrl}"
+    echo "Git commit: ${commitSha}"
+
     step([
         $class: 'GitHubCommitStatusSetter',
 
         reposSource: [
             $class: 'ManuallyEnteredRepositorySource',
-            url: 'https://github.com/zakari007/kubernetes-devops-security'
+            url: repoUrl
         ],
 
         commitShaSource: [
-            $class: 'BuildDataRevisionShaSource'
+            $class: 'ManuallyEnteredShaSource',
+            sha: commitSha
         ],
 
         contextSource: [
             $class: 'ManuallyEnteredCommitContextSource',
             context: 'continuous-integration/jenkins'
+        ],
+
+        errorHandlers: [
+            [$class: 'ShallowAnyErrorHandler']
         ],
 
         statusResultSource: [
@@ -28,6 +47,7 @@ def setGitHubStatus(String message, String state) {
         ]
     ])
 }
+
 
 
 pipeline {
