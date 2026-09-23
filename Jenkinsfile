@@ -150,6 +150,7 @@ pipeline {
 
         success {
             echo "Jenkins build SUCCESS"
+            echo "GIT_COMMIT=${env.GIT_COMMIT}"
 
             setGitHubStatus(
                 'Jenkins build passed',
@@ -159,6 +160,7 @@ pipeline {
 
         failure {
             echo "Jenkins build FAILED"
+            echo "GIT_COMMIT=${env.GIT_COMMIT}"
 
             setGitHubStatus(
                 'Jenkins build failed - see Jenkins console',
@@ -168,6 +170,7 @@ pipeline {
 
         unstable {
             echo "Jenkins build UNSTABLE"
+            echo "GIT_COMMIT=${env.GIT_COMMIT}"
 
             setGitHubStatus(
                 'Jenkins build is unstable',
