@@ -1,28 +1,37 @@
-post {
-    success {
-        setGitHubStatus(
-            'Jenkins build passed',
-            'SUCCESS'
-        )
-    }
+def setGitHubStatus(String message, String state) {
+    step([
+        $class: 'GitHubCommitStatusSetter',
 
-    failure {
-        setGitHubStatus(
-            'Jenkins build failed',
-            'FAILURE'
-        )
-    }
+        reposSource: [
+            $class: 'ManuallyEnteredRepositorySource',
+            url: 'https://github.com/zakari007/kubernetes-devops-security'
+        ],
 
-    unstable {
-        setGitHubStatus(
-            'Jenkins build is unstable',
-            'FAILURE'
-        )
-    }
+        commitShaSource: [
+            $class: 'BuildDataRevisionShaSource'
+        ],
+
+        contextSource: [
+            $class: 'ManuallyEnteredCommitContextSource',
+            context: 'continuous-integration/jenkins'
+        ],
+
+        statusResultSource: [
+            $class: 'ConditionalStatusResultSource',
+            results: [
+                [
+                    $class: 'AnyBuildResult',
+                    message: message,
+                    state: state
+                ]
+            ]
+        ]
+    ])
 }
 
 
 pipeline {
+
     agent any
 
     stages {
@@ -36,8 +45,10 @@ pipeline {
                     mvn clean package -DskipTests=true
                 '''
 
-                archiveArtifacts artifacts: 'target/*.jar',
-                                 fingerprint: true
+                archiveArtifacts(
+                    artifacts: 'target/*.jar',
+                    fingerprint: true
+                )
             }
         }
 
@@ -53,14 +64,10 @@ pipeline {
 
             post {
                 always {
-                    echo "===== JUNIT RESULTS ====="
-
                     junit(
                         testResults: 'target/surefire-reports/*.xml',
                         allowEmptyResults: false
                     )
-
-                    echo "===== JACOCO RESULTS ====="
 
                     jacoco(
                         execPattern: 'target/jacoco.exec'
@@ -71,6 +78,7 @@ pipeline {
 
         stage('Docker Build and Push') {
             steps {
+
                 withDockerRegistry([
                     credentialsId: 'Docker-hub',
                     url: ''
@@ -83,7 +91,6 @@ pipeline {
                         TAG=${GIT_COMMIT}
 
                         echo "===== DOCKER BUILD ====="
-                        echo "Image: ${IMAGE}:${TAG}"
 
                         docker build \
                             -t ${IMAGE}:${TAG} \
@@ -93,17 +100,11 @@ pipeline {
 
                         docker push ${IMAGE}:${TAG}
 
-                        echo "===== DOCKER LATEST TAG ====="
-
                         docker tag \
                             ${IMAGE}:${TAG} \
                             ${IMAGE}:latest
 
                         docker push ${IMAGE}:latest
-
-                        echo "Docker image successfully pushed:"
-                        echo "${IMAGE}:${TAG}"
-                        echo "${IMAGE}:latest"
                     '''
                 }
             }
@@ -111,48 +112,35 @@ pipeline {
 
         stage('Kubernetes Deployment') {
             steps {
+
                 sh '''
                     set -e
 
-                    echo "======================================"
-                    echo " KUBERNETES DEPLOYMENT"
-                    echo "======================================"
+                    echo "===== KUBERNETES CLUSTER ====="
 
-                    echo "===== Kubernetes Cluster ====="
                     kubectl cluster-info
 
-                    echo "===== Current Context ====="
-                    kubectl config current-context
+                    echo "===== KUBERNETES NODES ====="
 
-                    echo "===== Kubernetes Nodes ====="
                     kubectl get nodes
 
-                    echo "===== Updating Image ====="
+                    echo "===== UPDATE IMAGE ====="
 
                     sed -i "s#replace#sitotest/numeric-app:${GIT_COMMIT}#g" \
                         k8s_deployment_service.yaml
 
-                    echo "===== Kubernetes Manifest ====="
-                    grep -n "image:" k8s_deployment_service.yaml
-
-                    echo "===== Applying Deployment ====="
+                    echo "===== APPLY DEPLOYMENT ====="
 
                     kubectl apply \
                         -f k8s_deployment_service.yaml
 
-                    echo "===== Deployments ====="
+                    echo "===== DEPLOYMENTS ====="
 
                     kubectl get deployments
 
-                    echo "===== Pods ====="
+                    echo "===== PODS ====="
 
                     kubectl get pods -o wide
-
-                    echo "===== Services ====="
-
-                    kubectl get services
-
-                    echo "===== Kubernetes Deployment Complete ====="
                 '''
             }
         }
@@ -161,57 +149,30 @@ pipeline {
     post {
 
         success {
-            echo """
-            ======================================
-            JENKINS BUILD SUCCESS
-            ======================================
+            echo "Jenkins build SUCCESS"
 
-            Job:       ${JOB_NAME}
-            Build:     #${BUILD_NUMBER}
-            Commit:    ${GIT_COMMIT}
-
-            Jenkins:
-            ${BUILD_URL}
-
-            ======================================
-            """
+            setGitHubStatus(
+                'Jenkins build passed',
+                'SUCCESS'
+            )
         }
 
         failure {
-            echo """
-            ======================================
-            JENKINS BUILD FAILED
-            ======================================
+            echo "Jenkins build FAILED"
 
-            Job:       ${JOB_NAME}
-            Build:     #${BUILD_NUMBER}
-            Commit:    ${GIT_COMMIT}
-
-            Jenkins Console:
-            ${BUILD_URL}console
-
-            ======================================
-            """
+            setGitHubStatus(
+                'Jenkins build failed - see Jenkins console',
+                'FAILURE'
+            )
         }
 
         unstable {
-            echo """
-            ======================================
-            JENKINS BUILD UNSTABLE
-            ======================================
+            echo "Jenkins build UNSTABLE"
 
-            Job:       ${JOB_NAME}
-            Build:     #${BUILD_NUMBER}
-
-            Jenkins:
-            ${BUILD_URL}
-
-            ======================================
-            """
-        }
-
-        always {
-            echo "Jenkins Build URL: ${BUILD_URL}"
+            setGitHubStatus(
+                'Jenkins build is unstable',
+                'FAILURE'
+            )
         }
     }
 }
