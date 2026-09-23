@@ -1,3 +1,27 @@
+post {
+    success {
+        setGitHubStatus(
+            'Jenkins build passed',
+            'SUCCESS'
+        )
+    }
+
+    failure {
+        setGitHubStatus(
+            'Jenkins build failed',
+            'FAILURE'
+        )
+    }
+
+    unstable {
+        setGitHubStatus(
+            'Jenkins build is unstable',
+            'FAILURE'
+        )
+    }
+}
+
+
 pipeline {
     agent any
 
