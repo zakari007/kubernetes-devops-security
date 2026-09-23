@@ -36,7 +36,7 @@ pipeline {
 
     stages {
 
-        stage('Build Artifact') {
+        stage('Build Artifacts') {
             steps {
                 sh '''
                     set -e
