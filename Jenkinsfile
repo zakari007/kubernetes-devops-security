@@ -90,7 +90,7 @@ pipeline {
                     )
 
                     jacoco(
-                        execPattern: 'target/jacoco.exec'
+                        execPattern: 'target/jacoco.exec'???
                     )
                 }
             }
