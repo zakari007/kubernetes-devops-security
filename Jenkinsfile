@@ -99,8 +99,6 @@ pipeline {
 
         stage('SonarQube - SAST') {
             steps {
-                script {
-                    def mvn = tool 'Default Maven'
 
                     withSonarQubeEnv('SonarQube') {
                         sh """
@@ -110,8 +108,7 @@ pipeline {
                             -Dsonar.projectName=numeric-application
                         """
                     }
-                }
-            }
+                }          
         }
         
 
