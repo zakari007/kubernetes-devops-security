@@ -119,6 +119,11 @@ pipeline {
                         -Dsonar.projectName=numeric-application
                     '''
                 }
+                timeout(time: 2, unit: 'MINUTES') {
+                    script {
+                        waitforQualityGate abortPipeline: true
+                    }
+                }
             }
         }
         
