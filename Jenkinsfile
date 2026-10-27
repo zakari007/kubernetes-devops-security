@@ -56,6 +56,18 @@ pipeline {
 
     stages {
 
+        stage('Verify Java Runtime') {
+            steps {
+                sh '''
+                    set -e
+                    echo "===== JAVA RUNTIME ====="
+                    java -version
+                    java -XshowSettings:properties -version 2>&1 \
+                        | grep -Eq 'java.specification.version = 25([[:space:]]|$)'
+                '''
+            }
+        }
+
         stage('Build Artifacts') {
             steps {
                 sh '''
