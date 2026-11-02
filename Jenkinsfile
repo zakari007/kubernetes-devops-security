@@ -119,8 +119,25 @@ pipeline {
                         -Dsonar.projectName=numeric-application
                     '''
                 }
-               
+                timeout(time: 2, unit: 'MINUTES') {
+                    script {
+                        waitforQualityGate abortPipeline: true
+                    }
+                }
             }
+        }
+
+        stage('Vulnerability Scan - Docker Image') {
+            steps {
+                sh "mvn dependency-check:check"    
+            }
+            post {
+                always {
+                    dependencyCheckPublisher(
+                        pattern: 'target/dependency-check-report.xml'
+                    )
+                }
+            }    
         }
         
 

@@ -57,6 +57,20 @@
 				</execution>
 				</executions>
 			</plugin>
+
+
+			<!--     Dependencies check Plugin -->
+			<plugin>
+				<groupId>org.owasp</groupId>
+				<artifactId>dependency-check-maven</artifactId>
+				<version>8.4.0</version>
+				<configuration>
+					<format>ALL</format>
+					<failBuildOnCVSS>5</failBuildOnCVSS>
+				</configuration>
+			</plugin>
+
+
 			<plugin>
 				<groupId>org.jacoco</groupId>
 				<artifactId>jacoco-maven-plugin</artifactId>
