@@ -121,7 +121,8 @@ pipeline {
                 }
                 timeout(time: 2, unit: 'MINUTES') {
                     script {
-                        waitforQualityGate abortPipeline: true
+                        def qg = waitforQualityGate(abortPipeline: true)
+                        echo "Quality Gate status: ${qg.status}" 
                     }
                 }
             }
