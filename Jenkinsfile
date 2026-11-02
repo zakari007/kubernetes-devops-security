@@ -109,7 +109,7 @@ pipeline {
         }
 
 
-        stage('SonarQube - 2SAST') {
+        stage('SonarQube - SAST') {
             steps {
                 withSonarQubeEnv('SonarQube') {
                     sh '''
