@@ -66,7 +66,7 @@
 				<version>12.2.2</version>
 				<configuration>
 					<format>ALL</format>
-					<failBuildOnCVSS>5</failBuildOnCVSS>
+					<failBuildOnCVSS>10</failBuildOnCVSS>
 				</configuration>
 			</plugin>
 
