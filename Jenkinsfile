@@ -131,7 +131,7 @@ pipeline {
         stage('OWASP Dependency Check') {
             steps {
                 withCredentials([
-                    string(credentialsId: 'NVD_API_KEY',
+                    string(credentialsId: 'nvd-api-key',
                         variable: 'NVD_API_KEY')
                 ]) {
                     timeout(time: 60, unit: 'MINUTES') {
