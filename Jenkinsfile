@@ -128,17 +128,37 @@ pipeline {
             }
         }
 
-        stage('Vulnerability Scan - Docker Image') {
+        stage('OWASP Dependency Check') {
             steps {
-                sh "mvn org.owasp:dependency-check-maven:13.0.0:check"    
+                withCredentials([
+                    string(
+                        credentialsId: 'nvd-api-key',
+                        variable: 'NVD_API_KEY'
+                    )
+                ]) {
+                    sh '''
+                        set +x
+
+                        if [ -z "$NVD_API_KEY" ]; then
+                            echo "ERROR: NVD API key is empty"
+                            exit 1
+                        fi
+
+                        mvn org.owasp:dependency-check-maven:13.0.0:check \
+                        -DnvdApiKey="$NVD_API_KEY" \
+                        -Dformat=ALL \
+                        -DfailBuildOnCVSS=7
+                    '''
+                }
             }
+
             post {
                 always {
                     dependencyCheckPublisher(
-                        pattern: 'target/dependency-check-report.xml'
+                        pattern: '**/target/dependency-check-report.xml'
                     )
                 }
-            }    
+            }
         }
         
 
