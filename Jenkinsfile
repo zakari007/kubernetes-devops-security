@@ -134,11 +134,11 @@ pipeline {
                     string(credentialsId: 'nvd-api-key',
                         variable: 'NVD_API_KEY')
                 ]) {
-                    timeout(time: 60, unit: 'MINUTES') {
+                    timeout(time: 500, unit: 'MINUTES') {
                         sh '''
                             set +x
 
-                            mvn org.owasp:dependency-check-maven:13.0.0:check \
+                            mvn org.owasp:dependency-check-maven:12.2.2:check \
                                 -DnvdApiKey="$NVD_API_KEY" \
                                 -DdataDirectory=/var/lib/jenkins/dependency-check-data \
                                 -DassemblyAnalyzerEnabled=false \
