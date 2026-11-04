@@ -175,6 +175,24 @@ pipeline {
 
         stage('Docker Build and Push') {
             steps {
+                script {
+                    env.IMAGE = 'sitotest/numeric-app'
+                    env.TAG = env.GIT_COMMIT
+                }
+
+                sh '''
+                    set -e
+
+                    echo "===== DOCKER BUILD ====="
+
+                    docker build \
+                        -t ${IMAGE}:${TAG} \
+                        .
+
+                    echo "===== TRIVY SECURITY SCAN ====="
+
+                    bash trivy-scan-dockerimage.sh "${IMAGE}:${TAG}"
+                '''
 
                 withDockerRegistry([
                     credentialsId: 'Docker-hub',
@@ -184,22 +202,17 @@ pipeline {
                     sh '''
                         set -e
 
-                        IMAGE=sitotest/numeric-app
-                        TAG=${GIT_COMMIT}
-
-                        echo "===== DOCKER BUILD ====="
-
-                        docker build \
-                            -t ${IMAGE}:${TAG} \
-                            .
-
                         echo "===== DOCKER PUSH ====="
 
                         docker push ${IMAGE}:${TAG}
 
+                        echo "===== DOCKER TAG LATEST ====="
+
                         docker tag \
                             ${IMAGE}:${TAG} \
                             ${IMAGE}:latest
+
+                        echo "===== DOCKER PUSH LATEST ====="
 
                         docker push ${IMAGE}:latest
                     '''
