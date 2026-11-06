@@ -59,15 +59,7 @@
 				<artifactId>spring-boot-maven-plugin</artifactId>
 			</plugin>
 
-			<plugin>
-				<groupId></groupId>
-				<artifactId></artifactId>
-				<executions>
-				<execution>
-					<phase/>
-				</execution>
-				</executions>
-			</plugin>
+
 
 
 			<!--     Dependencies check Plugin -->
