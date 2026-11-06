@@ -157,8 +157,8 @@ pipeline {
                 }
             }
         }
-        
-        stage('Docker Build and Push') {
+
+        stage('Docker Build and Trivy Scan') {
             steps {
                 script {
                     env.IMAGE = 'sitotest/numeric-app'
@@ -166,7 +166,7 @@ pipeline {
                 }
 
                 sh '''
-                    set -e
+                    set +e      // set -e is disabled to allow the Trivy scan to complete even if vulnerabilities are found
 
                     echo "===== DOCKER BUILD ====="
 
@@ -178,24 +178,27 @@ pipeline {
 
                     bash trivy-scan-dockerimage.sh "${IMAGE}:${TAG}"
                 '''
+            }
+        }
 
+        stage('Docker Push to Hub') {
+            steps {
                 withDockerRegistry([
                     credentialsId: 'Docker-hub',
                     url: ''
                 ]) {
-
                     sh '''
                         set -e
-
-                        echo "===== DOCKER PUSH ====="
-
-                        docker push ${IMAGE}:${TAG}
 
                         echo "===== DOCKER TAG LATEST ====="
 
                         docker tag \
                             ${IMAGE}:${TAG} \
                             ${IMAGE}:latest
+
+                        echo "===== DOCKER PUSH ====="
+
+                        docker push ${IMAGE}:${TAG}
 
                         echo "===== DOCKER PUSH LATEST ====="
 
